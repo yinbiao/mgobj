@@ -57,7 +57,7 @@ def delete_files(curdir):
         for file_name in files:
             if file_name.endswith('.log'):
                 _file = path.join(root, file_name)
-                print _file
+                os.remove(_file)
 
 def get_uuid():
     return uuid.uuid1().hex
