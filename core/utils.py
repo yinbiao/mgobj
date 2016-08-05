@@ -41,7 +41,7 @@ def get_files(base_path, sub_path='', ext='', prefix='') :
     return iter(sorted(file_list))
 
 
-def get_day(days=0, formatstr='%Y%m%d'):
+def get_day(days=1, formatstr='%Y%m%d'):
     '''返回多少天之前的时间字符串
     默认返回昨天的时间字符串：20160508
     '''
