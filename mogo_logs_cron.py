@@ -228,9 +228,10 @@ class UploadLogs(object):
         解压格式：/a/b/filename-20160803.gz 解压为 /a/b/filename
         '''
         g = gzip.GzipFile(mode='rb', fileobj=open(file, 'rb'))
-        tf = os.path.splitext(file)[0] + '.log'
-        if os.path.isfile(tf):
-            os.remove(tf)
+        _pre = os.path.splitext(file)[0]
+        utils.delete_files(_pre)
+        uuid = utils.get_uuid()
+        tf = '{0}____{1}.log'.format(_pre, uuid)
         open(tf, "wb").write(g.read())
 
 

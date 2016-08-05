@@ -8,6 +8,7 @@ from os import path
 import shlex
 import six
 import sys
+import uuid
 from subprocess import Popen,PIPE
 
 
@@ -51,6 +52,13 @@ def get_hostname():
     p = Popen(shlex.split(cmd), stdout=PIPE)
     return p.stdout.readline().strip('\n')
 
+def delete_files(file):
+    cmd = 'rm -rf {0}____*.log'.format(file)
+    p = Popen(shlex.split(cmd), stdout=PIPE)
+    return p.stdout.readline().strip('\n')
+
+def get_uuid():
+    return uuid.uuid1().hex
 
 def safe_decode(text, incoming=None, errors='strict'):
     if not isinstance(text, (six.string_types, six.binary_type)):
