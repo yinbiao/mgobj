@@ -53,7 +53,8 @@ def get_hostname():
     return p.stdout.readline().strip('\n')
 
 def delete_files(file):
-    cmd = 'rm -rf {0}____*.log'.format(file)
+    cmd = 'rm -rf {0}*.log'.format(file)
+    print(cmd)
     p = Popen(shlex.split(cmd), stdout=PIPE)
     return p.stdout.readline().strip('\n')
 
