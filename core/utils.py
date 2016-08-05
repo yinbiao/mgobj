@@ -52,11 +52,12 @@ def get_hostname():
     p = Popen(shlex.split(cmd), stdout=PIPE)
     return p.stdout.readline().strip('\n')
 
-def delete_files(file):
-    cmd = 'rm -rf {0}*.log'.format(file)
-    print(cmd)
-    p = Popen(shlex.split(cmd), stdout=PIPE)
-    return p.stdout.readline().strip('\n')
+def delete_files(curdir):
+    for root, dirs, files in walk(curdir):
+        for file_name in files:
+            if file_name.endswith('.log'):
+                _file = path.join(root, file_name)
+                print _file
 
 def get_uuid():
     return uuid.uuid1().hex

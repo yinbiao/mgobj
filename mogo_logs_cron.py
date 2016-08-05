@@ -229,9 +229,9 @@ class UploadLogs(object):
         '''
         g = gzip.GzipFile(mode='rb', fileobj=open(file, 'rb'))
         _pre = os.path.splitext(file)[0]
-        utils.delete_files(_pre)
         uuid = utils.get_uuid()
         tf = '{0}____{1}.log'.format(_pre, uuid)
+        utils.delete_files(os.path.split(tf)[0]) #删除当前目录下所有的*.log文件
         open(tf, "wb").write(g.read())
 
 
