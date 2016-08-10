@@ -10,7 +10,9 @@ import shlex
 import six
 import sys
 import uuid
+import re
 from subprocess import Popen,PIPE
+from . import exceptions
 
 
 
@@ -45,8 +47,13 @@ def get_day(days=1, formatstr='%Y%m%d'):
     '''返回多少天之前的时间字符串
     默认返回昨天的时间字符串：20160508
     '''
-    day = datetime.datetime.now() - datetime.timedelta(days=days)
-    return day.strftime(formatstr)
+    if re.match(r'^\d$',str(days)):
+        day = datetime.datetime.now() - datetime.timedelta(days=days)
+        return day.strftime(formatstr)
+    elif re.match(r'^20\d{6,6}$',str(days)):
+        return str(days)
+    else:
+        raise exceptions.FormatException(u'格式不正确')
 
 def get_hostname():
     cmd = 'hostname -f'

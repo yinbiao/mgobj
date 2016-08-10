@@ -4,6 +4,9 @@
 from __future__ import print_function
 from core import base
 from core import utils
+from core.utils import safe_decode as _
+from core import exceptions
+from command import SelfArgumentParser, SelfHelpFormatter
 import logging
 import argparse
 import sys
@@ -18,13 +21,32 @@ class UploadLogs(object):
 
     def __init__(self):
         self.init = base.Init()
-        self.yearsday = utils.get_day() #格式为：20160802
+        parser = self.get_base_parser()
+        args = parser.parse_args()
+        self.yearsday = utils.get_day(args.d) #格式为：20160802
         self.hostname = utils.get_hostname() #获取主机名称
         self.nginxbucket = 'mogo-logs-nginx'
         self.tomcatbucket = 'mogo-logs-tomcat'
         self.nginxroot = self.init.config.get('main','nginxroot')
         self.tomcatroot = self.init.config.get('main','tomcatroot')
         self.status = True #检测整个脚本是否完全执行成功
+
+    def get_base_parser(self):
+        parser = SelfArgumentParser(
+            description=_(u'自动上传和下载日志'),
+            prog=_(u'命令'), 
+            usage=_(u'%(prog)s [选项]'),
+            argument_default=argparse.SUPPRESS,
+            formatter_class=SelfHelpFormatter,)
+
+        parser.add_argument(
+            '-d',
+            default=1,
+            metavar='',
+            type=int,
+            help=_((u'可以使用数字，比如1表示拉取昨天的日志，2表示拉取前天的日志；'
+                    u'也可以使用如下时间格式：20160805，表示拉取这天的日志')))
+        return parser
 
     def _nginx_file_format(self, filepath, project, localtype=False, download=False):
         '''根据配置文件的文件路径返回本地要处理的文件格式和上传到OSS的文件格式
@@ -225,7 +247,7 @@ class UploadLogs(object):
 
     def _unzipfile(self, file, random=False):
         '''解压文件
-        解压格式：/a/b/filename-20160803.gz 解压为 /a/b/filename
+        解压格式：/a/b/filename-20160803.gz 解压为 /a/b/filename-20160803.log
         '''
         g = gzip.GzipFile(mode='rb', fileobj=open(file, 'rb'))
         _pre = os.path.splitext(file)[0]
@@ -266,6 +288,9 @@ class UploadLogs(object):
 
 if __name__ == '__main__':
     try:
+        reload(sys).setdefaultencoding('utf8')
         UploadLogs().main()
+    except exceptions.FormatException, err:
+        print("Error: {0}".format(err), file=sys.stderr)
     except Exception, err:
         print("Error: {0}".format(err), file=sys.stderr)
