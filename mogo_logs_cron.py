@@ -234,7 +234,8 @@ class UploadLogs(object):
             tf = '{0}____{1}.log'.format(_pre, uuid)
         else:
             tf = '{0}.log'.format(_pre)
-        utils.delete_files(os.path.split(tf)[0]) #删除当前目录下所有的*.log文件
+        #utils.delete_files(os.path.split(tf)[0]) #删除当前目录下所有的*.log文件
+        if os.path.isfile(tf): os.remove(tf)
         open(tf, "wb").write(g.read())
 
 
