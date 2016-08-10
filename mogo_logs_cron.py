@@ -223,14 +223,17 @@ class UploadLogs(object):
             LOG.info(msg)
             print('{0} download success'.format(localfile))
 
-    def _unzipfile(self, file):
+    def _unzipfile(self, file, random=False):
         '''解压文件
         解压格式：/a/b/filename-20160803.gz 解压为 /a/b/filename
         '''
         g = gzip.GzipFile(mode='rb', fileobj=open(file, 'rb'))
         _pre = os.path.splitext(file)[0]
-        uuid = utils.get_uuid()
-        tf = '{0}____{1}.log'.format(_pre, uuid)
+        if random:
+            uuid = utils.get_uuid()
+            tf = '{0}____{1}.log'.format(_pre, uuid)
+        else:
+            tf = '{0}.log'.format(_pre)
         utils.delete_files(os.path.split(tf)[0]) #删除当前目录下所有的*.log文件
         open(tf, "wb").write(g.read())
 
