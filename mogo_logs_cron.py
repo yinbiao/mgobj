@@ -23,6 +23,7 @@ class UploadLogs(object):
         self.init = base.Init()
         parser = self.get_base_parser()
         args = parser.parse_args()
+        self.m = args.m
         self.yearsday = utils.get_day(args.d) #格式为：20160802
         self.hostname = utils.get_hostname() #获取主机名称
         self.nginxbucket = 'mogo-logs-nginx'
@@ -45,7 +46,17 @@ class UploadLogs(object):
             metavar='',
             type=int,
             help=_((u'可以使用数字，比如1表示拉取昨天的日志，2表示拉取前天的日志；'
-                    u'也可以使用如下时间格式：20160805，表示拉取这天的日志')))
+                    u'也可以使用如下时间格式：20160805，表示拉取这天的日志'))
+            )
+
+        parser.add_argument(
+            '-m',
+            default=3,
+            metavar='',
+            type=int,
+            help=_(u'工作模式：1表示只下载 2表示只解压 3表示下载后自动解压')
+            )
+
         return parser
 
     def _nginx_file_format(self, filepath, project, localtype=False, download=False):
@@ -223,9 +234,16 @@ class UploadLogs(object):
             _l = os.path.split(localfile)[0]
             if not os.path.isdir(_l):
                 os.makedirs(_l)
-            self.init.get_object_to_file(bucketobj, yunfile, localfile)
-            self._unzipfile(localfile)
-            msg = u'下载和解压Nginx日志：{1}到{0}成功'.format(localfile, yunfile)
+            if self.m == 1:
+                self.init.get_object_to_file(bucketobj, yunfile, localfile)
+                msg = u'下载Nginx日志：{1}到{0}成功'.format(localfile, yunfile)
+            elif self.m == 2:
+                self._unzipfile(localfile)
+                msg = u'解压Nginx日志：{1}到{0}成功'.format(localfile, yunfile)
+            else:
+                self.init.get_object_to_file(bucketobj, yunfile, localfile)
+                self._unzipfile(localfile)
+                msg = u'下载和解压Nginx日志：{1}到{0}成功'.format(localfile, yunfile)
             LOG.info(msg)
             print('{0} download success'.format(localfile))
 
@@ -239,9 +257,16 @@ class UploadLogs(object):
             _dir = os.path.split(localfile)[0]
             if not os.path.isdir(_dir):
                 os.makedirs(_dir)
-            self.init.get_object_to_file(bucketobj, yunfile, localfile)
-            self._unzipfile(localfile)
-            msg = u'下载和解压Tomcat日志：{1}到{0}成功'.format(localfile, yunfile)
+            if self.m == 1:
+                self.init.get_object_to_file(bucketobj, yunfile, localfile)
+                msg = u'下载Nginx日志：{1}到{0}成功'.format(localfile, yunfile)
+            elif self.m == 2:
+                self._unzipfile(localfile)
+                msg = u'解压Nginx日志：{1}到{0}成功'.format(localfile, yunfile)
+            else:
+                self.init.get_object_to_file(bucketobj, yunfile, localfile)
+                self._unzipfile(localfile)
+                msg = u'下载和解压Nginx日志：{1}到{0}成功'.format(localfile, yunfile)
             LOG.info(msg)
             print('{0} download success'.format(localfile))
 
