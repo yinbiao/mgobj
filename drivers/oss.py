@@ -10,22 +10,26 @@ import os
 
 class _Base(object):
 
-    def __init__(self, keyid, keysecret, endpoint):
+    def __init__(self, keyid, keysecret, endpoint, connect_timeout):
         self.keyid = os.getenv('OSS_ACCESSID', keyid)
         self.keysecret = os.getenv('OSS_ACCESSKEYSECRET', keysecret)
         self.endpoint = os.getenv('OSS_ENDPOINT', endpoint)
+        self.connect_timeout = connect_timeout
 
     def _auth(self):
         return oss2.Auth(self.keyid, self.keysecret)
 
     def _service(self, auth):
-        return oss2.Service(auth, self.endpoint)
+        return oss2.Service(auth, self.endpoint, '', self.connect_timeout)
 
 
 class ActionDriver(_Base):
 
-    def __init__(self, keyid, keysecret, endpoint):
-        super(ActionDriver, self).__init__(keyid, keysecret, endpoint)
+    def __init__(self, keyid, keysecret, endpoint, connect_timeout=3000):
+        super(ActionDriver, self).__init__(keyid, 
+                                           keysecret, 
+                                           endpoint, 
+                                           connect_timeout)
         self.auth = self._auth()
         self.service = self._service(self.auth)
 
@@ -33,7 +37,7 @@ class ActionDriver(_Base):
         return oss2.BucketIterator(self.service)
 
     def get_bucket(self, name):
-        return oss2.Bucket(self.auth, self.endpoint, name)
+        return oss2.Bucket(self.auth, self.endpoint, name, '', self.connect_timeout)
 
     def create_bucket(self, name):
         bucket = self.get_bucket(name)
