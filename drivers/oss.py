@@ -20,7 +20,7 @@ class _Base(object):
         return oss2.Auth(self.keyid, self.keysecret)
 
     def _service(self, auth):
-        return oss2.Service(auth, self.endpoint, '', self.connect_timeout)
+        return oss2.Service(auth, self.endpoint, connect_timeout=self.connect_timeout)
 
 
 class ActionDriver(_Base):
@@ -37,7 +37,7 @@ class ActionDriver(_Base):
         return oss2.BucketIterator(self.service)
 
     def get_bucket(self, name):
-        return oss2.Bucket(self.auth, self.endpoint, name, '', self.connect_timeout)
+        return oss2.Bucket(self.auth, self.endpoint, name, connect_timeout=self.connect_timeout)
 
     def create_bucket(self, name):
         bucket = self.get_bucket(name)
