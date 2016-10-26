@@ -415,6 +415,12 @@ class UploadLogs(object):
             self.uploadtomcaterror()
         elif self.uploadlog == "8":
             self.gettomcaterror()
+        elif self.uploadlog == "9":
+            self.uploadtomcaterror()
+            self.uploadtomcat()
+        elif self.uploadlog == "10":
+            self.gettomcaterror()
+            self.gettomcat()
         else:
             LOG.warning(u'配置文件没有启用任何日志传输')
             self.status = False
