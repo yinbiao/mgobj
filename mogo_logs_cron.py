@@ -421,6 +421,9 @@ class UploadLogs(object):
         elif self.uploadlog == "10":
             self.gettomcaterror()
             self.gettomcat()
+        elif self.uploadlog == "11":
+            self.getnginx()
+            self.gettomcaterror()
         else:
             LOG.warning(u'配置文件没有启用任何日志传输')
             self.status = False
