@@ -28,8 +28,10 @@ class UploadLogs(object):
         self.hostname = utils.get_hostname() #获取主机名称
         self.nginxbucket = 'mogo-logs-nginx'
         self.tomcatbucket = 'mogo-logs-tomcat'
+        self.tomcaterrorbucket = 'mogo-logs-tomcat-error'
         self.nginxroot = self.init.config.get('main','nginxroot')
         self.tomcatroot = self.init.config.get('main','tomcatroot')
+        self.tomcaterrorroot = self.init.config.get('main', 'tomcaterrorroot')
         self.status = True #检测整个脚本是否完全执行成功
 
     def get_base_parser(self):
@@ -88,7 +90,7 @@ class UploadLogs(object):
             localtype Boolean 返回本地格式或者OSS文件格式
             download Boolean 用于自定义下载时的本地文件路径
         '''
-        filename = "{0}-{1}.gz".format('catalina.out', self.yearsday)
+        filename = "{0}-{1}.gz".format('log.info', self.yearsday)
         if localtype:
             file = os.path.join(filepath, filename) #本地文件的格式
         elif download:
@@ -100,6 +102,29 @@ class UploadLogs(object):
                 self.yearsday, hostname) #OSS存储的文件名格式
             file = '{0}/{1}/{2}'.format(
                 self.tomcatbucket, 
+                project, 
+                ossfilename)
+        return file
+
+    def _tomcaterror_file_format(self, filepath, project, localtype=False, download=False):
+        '''根据配置文件的文件路径返回本地要处理的文件格式和上传到OSS的文件格式
+            filepath 配置文件指定的文件路径
+            project 项目规范名称[partner renter等]
+            localtype Boolean 返回本地格式或者OSS文件格式
+            download Boolean 用于自定义下载时的本地文件路径
+        '''
+        filename = "{0}-{1}.gz".format('log.error', self.yearsday)
+        if localtype:
+            file = os.path.join(filepath, filename) #本地文件的格式
+        elif download:
+            _filename = os.path.split(filepath)[1]
+            file = os.path.join(self.tomcaterrorroot, '{0}/{1}'.format(project,_filename))
+        else:
+            hostname = filepath.split('/')[2] #从配置文件的定义中获取hostname
+            ossfilename = "{0}____{1}.gz".format(
+                self.yearsday, hostname) #OSS存储的文件名格式
+            file = '{0}/{1}/{2}'.format(
+                self.tomcaterrorbucket, 
                 project, 
                 ossfilename)
         return file
@@ -144,6 +169,28 @@ class UploadLogs(object):
                     files.append((yunfile,file))
                 else:
                     LOG.warning(u'Tomcat日志：{0} 没有找到'.format(file))
+                    self.status = False
+        return files
+
+    def get_tomcaterror_files(self):
+        '''获取需要上传的tomcat error文件
+        返回格式：
+        [('mogo-logs-tomcat/payapi/20160803-hzb_web_1_1.gz',
+          '/logs/hzb_web_1_1/tomcat_payapi/catalina.out-20160803.gz')]
+        元组第一个元素为上传到OSS的对象名称
+        元祖第二个元素为本地的文件路径
+        '''
+        tomcaterror_project = self.init.config.options('tomcaterror')
+        files = []
+        for _p in tomcaterror_project:
+            _dir = self.init.config.get('tomcaterror',_p).split('#')
+            for _d in _dir:
+                file = self._tomcaterror_file_format(_d, _p, localtype=True)
+                if os.path.isfile(file):
+                    yunfile = self._tomcaterror_file_format(_d, _p)
+                    files.append((yunfile,file))
+                else:
+                    LOG.warning(u'Tomcat Error 日志：{0} 没有找到'.format(file))
                     self.status = False
         return files
 
@@ -202,6 +249,31 @@ class UploadLogs(object):
                     self.status = False
         return files
 
+    def get_tomcaterror_files_fromoss(self):
+        '''根据配置文件，返回需要从OSS上下载的 tomcat error 文件列表
+        返回格式：
+        [('mogo-logs-tomcat/payapi/20160803-hzb_web_1_1.gz',
+          '/logs/hzb_web_1_1/tomcat_payapi/catalina.out-20160803.gz')]
+        元组第一个元素为上传到OSS的对象名称
+        元祖第二个元素为本地的文件路径
+        '''
+        tomcaterror_project = self.init.config.options('tomcaterror')
+        files = []
+        bucketobj = self.init.get_bucket(self.tomcaterrorbucket)
+        for _p in tomcaterror_project:
+            _dir = self.init.config.get('tomcaterror',_p).split('#')
+            for _d in _dir:
+                yunfile = self._tomcaterror_file_format(_d, _p)
+                file = self._tomcaterror_file_format(yunfile, _p, download=True)
+                yunfile_isexist = list( 
+                    self.init.list_object(bucketobj, prefix=yunfile) )
+                if yunfile_isexist:
+                    files.append((yunfile_isexist[0][1].key,file))
+                else:
+                    LOG.error(u'Tomcat Error 日志：{0}在OSS上不存在'.format(yunfile))
+                    self.status = False
+        return files
+
     def uploadnginx(self):
         '''上传服务器上昨天的nginx日志文件到OSS
         '''
@@ -221,6 +293,17 @@ class UploadLogs(object):
         for yunfile, localfile in tomcat_files:
             self.init.put_object_from_file(bucketobj, yunfile, localfile)
             msg = u'上传Tomcat日志：{0}到{1}成功'.format(localfile, yunfile)
+            LOG.info(msg)
+            print('{0} upload success'.format(localfile))
+
+    def uploadtomcaterror(self):
+        '''上传服务器上昨天的tomcat error 日志文件到OSS
+        '''
+        tomcaterror_files = self.get_tomcaterror_files()
+        bucketobj = self.init.get_bucket(self.tomcaterrorbucket)
+        for yunfile, localfile in tomcaterror_files:
+            self.init.put_object_from_file(bucketobj, yunfile, localfile)
+            msg = u'上传Tomcat Error 日志：{0}到{1}成功'.format(localfile, yunfile)
             LOG.info(msg)
             print('{0} upload success'.format(localfile))
 
@@ -259,14 +342,37 @@ class UploadLogs(object):
                 os.makedirs(_dir)
             if self.m == 1:
                 self.init.get_object_to_file(bucketobj, yunfile, localfile)
-                msg = u'下载Nginx日志：{1}到{0}成功'.format(localfile, yunfile)
+                msg = u'下载Tomcat日志：{1}到{0}成功'.format(localfile, yunfile)
             elif self.m == 2:
                 self._unzipfile(localfile)
-                msg = u'解压Nginx日志：{1}到{0}成功'.format(localfile, yunfile)
+                msg = u'解压Tomcat日志：{1}到{0}成功'.format(localfile, yunfile)
             else:
                 self.init.get_object_to_file(bucketobj, yunfile, localfile)
                 self._unzipfile(localfile)
-                msg = u'下载和解压Nginx日志：{1}到{0}成功'.format(localfile, yunfile)
+                msg = u'下载和解压Tomcat日志：{1}到{0}成功'.format(localfile, yunfile)
+            LOG.info(msg)
+            print('{0} download success'.format(localfile))
+
+    def gettomcaterror(self):
+        '''从OSS上下载昨天的tomcat error日志到本地并解压
+        默认存放格式：/data/logs/tomcat/hzb_web_1_1/payapi/log.error-20160803.gz
+        '''
+        tomcaterror_files = self.get_tomcaterror_files_fromoss()
+        bucketobj = self.init.get_bucket(self.tomcaterrorbucket)
+        for yunfile, localfile in tomcaterror_files:
+            _dir = os.path.split(localfile)[0]
+            if not os.path.isdir(_dir):
+                os.makedirs(_dir)
+            if self.m == 1:
+                self.init.get_object_to_file(bucketobj, yunfile, localfile)
+                msg = u'下载Tomcaterror日志：{1}到{0}成功'.format(localfile, yunfile)
+            elif self.m == 2:
+                self._unzipfile(localfile)
+                msg = u'解压Tomcaterror日志：{1}到{0}成功'.format(localfile, yunfile)
+            else:
+                self.init.get_object_to_file(bucketobj, yunfile, localfile)
+                self._unzipfile(localfile)
+                msg = u'下载和解压Tomcaterror日志：{1}到{0}成功'.format(localfile, yunfile)
             LOG.info(msg)
             print('{0} download success'.format(localfile))
 
@@ -305,6 +411,10 @@ class UploadLogs(object):
         elif self.uploadlog == '6':
             self.getnginx()
             self.gettomcat()
+        elif self.uploadlog == "7":
+            self.uploadtomcaterror()
+        elif self.uploadlog == "8":
+            self.gettomcaterror()
         else:
             LOG.warning(u'配置文件没有启用任何日志传输')
             self.status = False
