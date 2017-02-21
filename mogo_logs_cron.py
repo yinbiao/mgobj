@@ -357,6 +357,10 @@ class UploadLogs(object):
         '''从OSS上下载昨天的tomcat error日志到本地并解压
         默认存放格式：/data/logs/tomcat/hzb_web_1_1/payapi/log.error-20160803.gz
         '''
+
+        return "" #注释了tomcat下载
+
+
         tomcaterror_files = self.get_tomcaterror_files_fromoss()
         bucketobj = self.init.get_bucket(self.tomcaterrorbucket)
         for yunfile, localfile in tomcaterror_files:
